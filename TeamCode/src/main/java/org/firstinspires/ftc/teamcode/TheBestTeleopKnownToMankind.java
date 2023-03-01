@@ -1,10 +1,15 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.teamcode.subsystems.Lift;
+import org.firstinspires.ftc.teamcode.subsystems.Turntable;
 
 import java.lang.reflect.GenericArrayType;
 
@@ -16,45 +21,33 @@ public class TheBestTeleopKnownToMankind extends OpMode
     DcMotor motorFrontRight;
     DcMotor motorBackRight;
 
-    DcMotor lift;
+    DcMotor lift_top;
+    DcMotor lift_bottom;
+
+    DcMotor turntable;
 
     Servo claw;
-
-    private int targetPosition = 0;
-    private int HIGH_POSITION = General.HIGH_POSITION;
-    private int MEDIUM_POSITION = General.MEDIUM_POSITION;
-    private int INTAKE_POSITION = General.INTAKE_POSITION;
-    int manual_position = targetPosition;
 
     double CLAW_OPEN = General.CLAW_OPEN;
     double CLAW_CLOSED = General.CLAW_CLOSED;
     boolean changed_trigger;
     public void init()
     {
-        // Declare our motors
-        // Make sure your ID's match your configuration
-
-        //RobotHardwareMap hM = new RobotHardwareMap();
-
-        // Reverse the right side motors
-        // Reverse left motors if you are using NeveRests
+        //General.init();
 
         motorFrontLeft = hardwareMap.dcMotor.get("motorFrontLeft");
         motorBackLeft = hardwareMap.dcMotor.get("motorBackLeft");
         motorFrontRight = hardwareMap.dcMotor.get("motorFrontRight");
         motorBackRight = hardwareMap.dcMotor.get("motorBackRight");
 
+        lift_top = hardwareMap.dcMotor.get("liftMotorTop");
+        lift_bottom = hardwareMap.dcMotor.get("liftMotorBottom");
+
+        //  turntable = hardwareMap.dcMotor.get("turntableMotor");
+
         motorBackLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         motorFrontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        lift = hardwareMap.dcMotor.get("liftMotor");
-
-        lift.setTargetPosition(INTAKE_POSITION);
-        lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        lift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        lift.setPower(1);
-
-        lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         motorFrontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         motorBackLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         motorFrontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -63,86 +56,87 @@ public class TheBestTeleopKnownToMankind extends OpMode
         //double a = 0;
         claw = hardwareMap.get(Servo.class, "clawMotor");
         //claw.setDirection(Servo.Direction.REVERSE);
-
-        targetPosition = INTAKE_POSITION;
-
+        //  telemetry.addData("done", 0 );
         // Declare our motors
         // Make sure your ID's match your configuration
         //claw.setDirection(Servo.Direction.REVERSE);
 
-        changed_trigger = false; //Outside of loop()
+        changed_trigger = true; //Outside of loop()
+        Lift.init(hardwareMap);
+        Turntable.init(hardwareMap);
+        //lift_top.setPower(1);
     }
     public void loop()
     {
+        double y = -gamepad2.left_stick_y; // Remember, this is reversed!
+        double x = gamepad2.left_stick_x * 1.1; // Counteract imperfect strafing
+        double rx = gamepad2.right_stick_x;
 
-            double y = -gamepad1.left_stick_y; // Remember, this is reversed!
-            double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
-            double rx = gamepad1.right_stick_x;
+        double drivetrain_speed = gamepad1.right_bumper?0.4:1;
+        // Denominator is the largest motor power (absolute value) or 1
+        // This ensures all the powers maintain the same ratio, but only when
+        // at least one is out of the range [-1, 1]
+        double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
 
-            double max_speed = gamepad1.right_bumper?0.4:0.9;
-            // Denominator is the largest motor power (absolute value) or 1
-            // This ensures all the powers maintain the same ratio, but only when
-            // at least one is out of the range [-1, 1]
-            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+        double frontLeftPower = (y + x + rx) / denominator * drivetrain_speed;
+        double backLeftPower = (y - x + rx) / denominator * drivetrain_speed;
+        double frontRightPower = (y - x - rx) / denominator * drivetrain_speed;
+        double backRightPower = (y + x - rx) / denominator * drivetrain_speed;
 
-            double frontLeftPower = (y + x + rx) / denominator * max_speed;
-            double backLeftPower = (y - x + rx) / denominator * max_speed;
-            double frontRightPower = (y - x - rx) / denominator * max_speed;
-            double backRightPower = (y + x - rx) / denominator * max_speed;
+        // from here on out, we're using the gamepad2
 
-            if(gamepad1.dpad_up) targetPosition+=2;
-            if(gamepad1.dpad_down && targetPosition-2>=0) targetPosition-=2;
+        if(gamepad1.dpad_up) Lift.setSetPoint(Lift.getTargetPosition()+6);
+        if(gamepad1.dpad_down && Lift.getTargetPosition()-6>=0) Lift.setSetPoint(Lift.getTargetPosition()-6);
 
-            if(gamepad1.a) //bottom
-            {
-                claw.setPosition(CLAW_OPEN);
-                targetPosition = INTAKE_POSITION;
-            }
+        Turntable.turn(gamepad1.right_stick_x * Math.max(1-gamepad1.left_trigger, 0.2));
 
-            if(gamepad1.y) // up
-            {
-                claw.setPosition(CLAW_CLOSED); //close claw
-                targetPosition = HIGH_POSITION;
-            }
+        if(gamepad1.a) //intake
+        {
+            claw.setPosition(CLAW_OPEN);
+            Lift.setSetPoint(Lift.INTAKE_POSITION);
+        }
 
-            if(gamepad1.x) // med
-            {
-                claw.setPosition(CLAW_CLOSED); //close claw
-                targetPosition = MEDIUM_POSITION;
-            }
+        if(gamepad1.y) // up
+        {
+            claw.setPosition(CLAW_CLOSED); //close claw
+            Lift.setSetPoint(Lift.HIGH_POSITION);
+        }
+
+        if(gamepad1.x) // med
+        {
+            claw.setPosition(CLAW_CLOSED); //close claw
+            Lift.setSetPoint(Lift.MEDIUM_POSITION);
+        }
 
 
-            //if(gamepad1.dpad_right) {targetPosition+=0.10; sleep(100);};
-            //if(gamepad1.dpad_left) {targetPosition-=0.10; sleep(100);};
+        //if(gamepad1.dpad_right) {targetPosition+=0.10; sleep(100);};
+        //if(gamepad1.dpad_left) {targetPosition-=0.10; sleep(100);};
 
-            //telemetry.addData("set:", a);
-            // toggle for the trigger
-            if((gamepad1.right_trigger >= 0.7) && !changed_trigger)
-            {
-                if(claw.getPosition() <= CLAW_CLOSED+0.1) claw.setPosition(CLAW_OPEN);
-                else claw.setPosition(CLAW_CLOSED);
-                changed_trigger = true;
-            } else if(!(gamepad1.right_trigger >= 0.7)) changed_trigger = false;
+        //telemetry.addData("set:", a);
+        // toggle for the trigger
+        if((gamepad1.right_trigger >= 0.7) && !changed_trigger)
+        {
+            if(claw.getPosition() <= CLAW_CLOSED+0.1) claw.setPosition(CLAW_OPEN);
+            else claw.setPosition(CLAW_CLOSED);
+            changed_trigger = true;
+        } else if(!(gamepad1.right_trigger >= 0.7)) changed_trigger = false;
 
-            motorFrontLeft.setPower(frontLeftPower);
-            motorBackLeft.setPower(backLeftPower);
-            motorFrontRight.setPower(frontRightPower);
-            motorBackRight.setPower(backRightPower);
+        motorFrontLeft.setPower(frontLeftPower);
+        motorBackLeft.setPower(backLeftPower);
+        motorFrontRight.setPower(frontRightPower);
+        motorBackRight.setPower(backRightPower);
+            //lift_top.setPower(1);
 
-            lift.setTargetPosition(targetPosition);
+        telemetry.addData("lift_current:", Lift.getCurrentPositionTop());
+        telemetry.addData("lift_target:", Lift.getTargetPosition());
+        //telemetry.addData("lift_top_current:", Lift.getCurrentPositionTop());
+        //telemetry.addData("claw_current:", claw.getPosition());
+        telemetry.addData("top_motor_power:", lift_top.getPower());
+        telemetry.addData("bottom_motor_power:", lift_bottom.getPower());
+           // Turntable.update();
+        telemetry.update();
 
-            telemetry.addData("lift_target:", targetPosition);
-            telemetry.addData("lift_current:", lift.getCurrentPosition());
-            telemetry.addData("claw_current:", claw.getPosition());
-            telemetry.update();
-
-            //motorBackLeft.setMode(DcMotor.RunMode.);
-            //motorBackLeft.get
-
-            //hM.leftFront.setPower(frontLeftPower);
-            //hM.leftRear.setPower(backLeftPower);
-            //hM.rightFront.setPower(frontRightPower);
-            //hM.rightRear.setPower(backRightPower);
+        Lift.update();
 
     }
 

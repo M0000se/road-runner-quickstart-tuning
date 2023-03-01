@@ -1,14 +1,24 @@
 package org.firstinspires.ftc.teamcode;
 
-public class General {
-    final static int NUM_CONES = 2;
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
 
-    final static public int HIGH_POSITION = 2100;
-    final static public int MEDIUM_POSITION = 1000;
-    final static public int INTAKE_POSITION = 0;
-    static public int STACK_START_POSITION = 100;
-    final static public int STACK_DECREMENT = 20;
+import com.arcrobotics.ftclib.controller.PIDFController;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.teamcode.subsystems.Lift;
+
+public class General
+{
     final static public double CLAW_OPEN = 1;
-    final static public double CLAW_CLOSED = 0.1;
+    final static public double CLAW_CLOSED = 0;
+
+    // Creates a PIDFController with gains kP, kI, kD, and kF
+    Servo claw;
+
+    static void init()
+    {
+
+    }
 }

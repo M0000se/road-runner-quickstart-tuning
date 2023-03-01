@@ -428,7 +428,7 @@ public class FtcRobotControllerActivity extends Activity
   @Override
   protected void onStart() {
     super.onStart();
-    RobotLog.vv(TAG, "onStart()");
+    RobotLog.vv(TAG,  "onStart()");
 
     entireScreenLayout.setOnTouchListener(new View.OnTouchListener() {
       @Override

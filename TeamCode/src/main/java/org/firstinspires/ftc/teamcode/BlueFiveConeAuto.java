@@ -2,11 +2,11 @@ package org.firstinspires.ftc.teamcode;
 
 import static org.firstinspires.ftc.teamcode.General.CLAW_CLOSED;
 import static org.firstinspires.ftc.teamcode.General.CLAW_OPEN;
-import static org.firstinspires.ftc.teamcode.General.HIGH_POSITION;
+/*import static org.firstinspires.ftc.teamcode.General.HIGH_POSITION;
 import static org.firstinspires.ftc.teamcode.General.INTAKE_POSITION;
 import static org.firstinspires.ftc.teamcode.General.NUM_CONES;
 import static org.firstinspires.ftc.teamcode.General.STACK_DECREMENT;
-import static org.firstinspires.ftc.teamcode.General.STACK_START_POSITION;
+import static org.firstinspires.ftc.teamcode.General.STACK_START_POSITION;*/
 import static java.lang.Math.abs;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
@@ -23,7 +23,7 @@ public class BlueFiveConeAuto extends LinearOpMode
 {
     @Override
     public void runOpMode() throws InterruptedException {
-        DcMotor lift = hardwareMap.dcMotor.get("liftMotor");
+        /*DcMotor lift = hardwareMap.dcMotor.get("liftMotor");
 
         lift.setTargetPosition(STACK_START_POSITION); // go to stack level
         lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -126,6 +126,6 @@ public class BlueFiveConeAuto extends LinearOpMode
                 drive.trajectoryBuilder(back.end())
                         .lineToLinearHeading(new Pose2d(0, startPose.getY(), Math.toRadians(270)))
                         .build();
-        drive.followTrajectory(terminal);
+        drive.followTrajectory(terminal); */
     }
 }
