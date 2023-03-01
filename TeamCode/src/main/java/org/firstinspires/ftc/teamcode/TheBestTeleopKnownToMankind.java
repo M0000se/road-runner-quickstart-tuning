@@ -68,22 +68,10 @@ public class TheBestTeleopKnownToMankind extends OpMode
     }
     public void loop()
     {
-        double y = -gamepad2.left_stick_y; // Remember, this is reversed!
-        double x = gamepad2.left_stick_x * 1.1; // Counteract imperfect strafing
-        double rx = gamepad2.right_stick_x;
+
 
         double drivetrain_speed = gamepad1.right_bumper?0.4:1;
-        // Denominator is the largest motor power (absolute value) or 1
-        // This ensures all the powers maintain the same ratio, but only when
-        // at least one is out of the range [-1, 1]
-        double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
 
-        double frontLeftPower = (y + x + rx) / denominator * drivetrain_speed;
-        double backLeftPower = (y - x + rx) / denominator * drivetrain_speed;
-        double frontRightPower = (y - x - rx) / denominator * drivetrain_speed;
-        double backRightPower = (y + x - rx) / denominator * drivetrain_speed;
-
-        // from here on out, we're using the gamepad2
 
         if(gamepad1.dpad_up) Lift.setSetPoint(Lift.getTargetPosition()+6);
         if(gamepad1.dpad_down && Lift.getTargetPosition()-6>=0) Lift.setSetPoint(Lift.getTargetPosition()-6);
@@ -108,6 +96,12 @@ public class TheBestTeleopKnownToMankind extends OpMode
             Lift.setSetPoint(Lift.MEDIUM_POSITION);
         }
 
+        if(gamepad1.a) // med
+        {
+            claw.setPosition(CLAW_CLOSED); //close claw
+            Lift.setSetPoint(Lift.MEDIUM_POSITION);
+        }
+
 
         //if(gamepad1.dpad_right) {targetPosition+=0.10; sleep(100);};
         //if(gamepad1.dpad_left) {targetPosition-=0.10; sleep(100);};
@@ -121,10 +115,7 @@ public class TheBestTeleopKnownToMankind extends OpMode
             changed_trigger = true;
         } else if(!(gamepad1.right_trigger >= 0.7)) changed_trigger = false;
 
-        motorFrontLeft.setPower(frontLeftPower);
-        motorBackLeft.setPower(backLeftPower);
-        motorFrontRight.setPower(frontRightPower);
-        motorBackRight.setPower(backRightPower);
+
             //lift_top.setPower(1);
 
         telemetry.addData("lift_current:", Lift.getCurrentPositionTop());
@@ -137,7 +128,6 @@ public class TheBestTeleopKnownToMankind extends OpMode
         telemetry.update();
 
         Lift.update();
-
     }
 
 }

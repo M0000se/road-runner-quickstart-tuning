@@ -66,7 +66,7 @@ public class Lift
     public static int getTargetPosition() {
         return target_position;
     }
-    public static void setSetPoint(int set_point) {
+    public static void setTargetPosition(int set_point) {
         lift.setTargetPosition(set_point);
         target_position=set_point;
     }

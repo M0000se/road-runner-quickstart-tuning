@@ -11,8 +11,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Lift;
 
 public class General
 {
-    final static public double CLAW_OPEN = 1;
-    final static public double CLAW_CLOSED = 0;
+
 
     // Creates a PIDFController with gains kP, kI, kD, and kF
     Servo claw;
