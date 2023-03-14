@@ -1,5 +1,9 @@
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.TheBestTeleopKnownToMankind.State;
+import static org.firstinspires.ftc.teamcode.TheBestTeleopKnownToMankind.State.*;
+
+import com.outoftheboxrobotics.photoncore.PhotonCore;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -7,8 +11,13 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.subsystems.Claw;
+import org.firstinspires.ftc.teamcode.subsystems.Drivetrain;
+import org.firstinspires.ftc.teamcode.subsystems.Extendo;
 import org.firstinspires.ftc.teamcode.subsystems.Lift;
+import org.firstinspires.ftc.teamcode.subsystems.Robot;
 import org.firstinspires.ftc.teamcode.subsystems.Turntable;
 
 import java.lang.reflect.GenericArrayType;
@@ -16,118 +25,112 @@ import java.lang.reflect.GenericArrayType;
 @TeleOp
 public class TheBestTeleopKnownToMankind extends OpMode
 {
-    DcMotor motorFrontLeft;
-    DcMotor motorBackLeft;
-    DcMotor motorFrontRight;
-    DcMotor motorBackRight;
-
-    DcMotor lift_top;
-    DcMotor lift_bottom;
-
-    DcMotor turntable;
-
-    Servo claw;
-
-    double CLAW_OPEN = General.CLAW_OPEN;
-    double CLAW_CLOSED = General.CLAW_CLOSED;
-    boolean changed_trigger;
+    static final private int CLAW_UP_TIME = 1000;
+    boolean changed_trigger = false;
+    int direction=0;
+    ElapsedTime time = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+    public enum State {
+        INTAKE,
+        GOING_OUT,
+        GOING_INTAKE
+    }
+    State state = State.INTAKE;
     public void init()
     {
-        //General.init();
-
-        motorFrontLeft = hardwareMap.dcMotor.get("motorFrontLeft");
-        motorBackLeft = hardwareMap.dcMotor.get("motorBackLeft");
-        motorFrontRight = hardwareMap.dcMotor.get("motorFrontRight");
-        motorBackRight = hardwareMap.dcMotor.get("motorBackRight");
-
-        lift_top = hardwareMap.dcMotor.get("liftMotorTop");
-        lift_bottom = hardwareMap.dcMotor.get("liftMotorBottom");
-
-        //  turntable = hardwareMap.dcMotor.get("turntableMotor");
-
-        motorBackLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        motorFrontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-
-        motorFrontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        motorBackLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        motorFrontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        motorBackRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        //double a = 0;
-        claw = hardwareMap.get(Servo.class, "clawMotor");
-        //claw.setDirection(Servo.Direction.REVERSE);
-        //  telemetry.addData("done", 0 );
-        // Declare our motors
-        // Make sure your ID's match your configuration
-        //claw.setDirection(Servo.Direction.REVERSE);
-
-        changed_trigger = true; //Outside of loop()
-        Lift.init(hardwareMap);
-        Turntable.init(hardwareMap);
-        //lift_top.setPower(1);
+        Robot.initAll(hardwareMap);
+        Turntable.setSpeed(0.7);
     }
     public void loop()
     {
+        if(gamepad1.right_trigger>0.5) Drivetrain.setSpeed(0.4);
+        else Drivetrain.setSpeed(1);
+        switch(state) {
+            case INTAKE:
+            {
+                if (gamepad1.dpad_right) direction = 1;
+                if (gamepad1.dpad_left) direction = 2;
+                if (gamepad1.dpad_up) direction = 3;
 
+                if (gamepad1.dpad_right || gamepad1.dpad_left || gamepad1.dpad_up)
+                {
+                    state = State.GOING_OUT;
+                    time.reset();
+                }
 
-        double drivetrain_speed = gamepad1.right_bumper?0.4:1;
+                if(gamepad1.left_trigger >= 0.5) {
+                    Extendo.setPosition(Extendo.FULL_EXTEND_POSITION);
+                }
+                else Extendo.setPosition(Extendo.INTAKE_POSITION);
 
+                if(gamepad1.right_trigger >= 0.5) {
+                    Claw.setPosition(Claw.CLAW_OPEN);
+                }
+                else Claw.setPosition(Claw.CLAW_CLOSED);
+            } break;
+            case GOING_OUT: // go out and choose position and then release and go to intake state
+            {
+                boolean changed_trigger = false;
+                Claw.setPivotUp();
+                if(time.time()>CLAW_UP_TIME) {
+                    telemetry.addData("COOL: ", direction);
+                    if (direction == 1) Turntable.setTargetPosition(Turntable.RIGHT_POSITION);
+                    if (direction == 2) Turntable.setTargetPosition(Turntable.LEFT_POSITION);
+                    if (direction == 3) Turntable.setTargetPosition(Turntable.FRONT_POSITION);
+                    Extendo.setPosition(Extendo.JUNCTION_EXTEND_POSITION);
 
-        if(gamepad1.dpad_up) Lift.setSetPoint(Lift.getTargetPosition()+6);
-        if(gamepad1.dpad_down && Lift.getTargetPosition()-6>=0) Lift.setSetPoint(Lift.getTargetPosition()-6);
-
-        Turntable.turn(gamepad1.right_stick_x * Math.max(1-gamepad1.left_trigger, 0.2));
-
-        if(gamepad1.a) //intake
-        {
-            claw.setPosition(CLAW_OPEN);
-            Lift.setSetPoint(Lift.INTAKE_POSITION);
+                    if(gamepad1.right_trigger >= 0.5) {
+                        Claw.setPosition(Claw.CLAW_OPEN);
+                        changed_trigger = true;
+                    }
+                    if(changed_trigger && (gamepad1.right_trigger>=0.5)) {
+                        state = GOING_INTAKE;
+                    }
+                }
+            } break;
+            case GOING_INTAKE:
+            {
+                Turntable.setTargetPosition(Turntable.INTAKE_POSITION);
+                Extendo.setPosition(Extendo.INTAKE_POSITION);
+                Lift.setTargetPosition(Lift.INTAKE_POSITION);
+                Claw.setPosition(Claw.CLAW_FIT);
+                if(Turntable.atTargetPosition()) {
+                    Claw.setPivotDown();
+                    state = INTAKE;
+                }
+            } break;
         }
 
-        if(gamepad1.y) // up
-        {
-            claw.setPosition(CLAW_CLOSED); //close claw
-            Lift.setSetPoint(Lift.HIGH_POSITION);
-        }
+        //if(gamepad1.dpad_right) Lift.setSetPoint(Lift.getTargetPosition()+6);
+        //if(gamepad1.dpad_down && Lift.getTargetPosition()-6>=0) Lift.setSetPoint(Lift.getTargetPosition()-6);
 
-        if(gamepad1.x) // med
-        {
-            claw.setPosition(CLAW_CLOSED); //close claw
-            Lift.setSetPoint(Lift.MEDIUM_POSITION);
-        }
+        //if(gamepad1.a) Lift.setTargetPosition(Lift.INTAKE_POSITION);
+        if(gamepad1.y) Lift.setTargetPosition(Lift.HIGH_POSITION);
+        if(gamepad1.x) Lift.setTargetPosition(Lift.MEDIUM_POSITION);
+        if(gamepad1.b) Lift.setTargetPosition(Lift.LOW_POSITION);
 
-        if(gamepad1.a) // med
-        {
-            claw.setPosition(CLAW_CLOSED); //close claw
-            Lift.setSetPoint(Lift.MEDIUM_POSITION);
-        }
+        //if(gamepad1.dpad_up) Lift.setTargetPosition(Lift.getTargetPosition()+10);
+        //if(gamepad1.dpad_down) Lift.setTargetPosition(Lift.getTargetPosition()-10);
 
-
-        //if(gamepad1.dpad_right) {targetPosition+=0.10; sleep(100);};
-        //if(gamepad1.dpad_left) {targetPosition-=0.10; sleep(100);};
+        if(gamepad1.left_stick_x>0.1)    Turntable.setTargetPosition(Turntable.getTargetPosition()+2);
+        if(gamepad1.left_stick_x<-0.1)   Turntable.setTargetPosition(Turntable.getTargetPosition()-2);
 
         //telemetry.addData("set:", a);
         // toggle for the trigger
-        if((gamepad1.right_trigger >= 0.7) && !changed_trigger)
-        {
-            if(claw.getPosition() <= CLAW_CLOSED+0.1) claw.setPosition(CLAW_OPEN);
-            else claw.setPosition(CLAW_CLOSED);
-            changed_trigger = true;
-        } else if(!(gamepad1.right_trigger >= 0.7)) changed_trigger = false;
-
 
             //lift_top.setPower(1);
+        Drivetrain.update(gamepad2.left_stick_y, gamepad2.left_stick_x, gamepad2.right_stick_x);
+        Lift.update();
 
         telemetry.addData("lift_current:", Lift.getCurrentPositionTop());
         telemetry.addData("lift_target:", Lift.getTargetPosition());
+        telemetry.addData("tunrtable current:", Turntable.getCurrentPosition());
+        telemetry.addData("tunrtable target:", Turntable.getTargetPosition());
         //telemetry.addData("lift_top_current:", Lift.getCurrentPositionTop());
         //telemetry.addData("claw_current:", claw.getPosition());
-        telemetry.addData("top_motor_power:", lift_top.getPower());
-        telemetry.addData("bottom_motor_power:", lift_bottom.getPower());
+        //telemetry.addData("top_motor_power:", lift_top.getPower());
+        //telemetry.addData("bottom_motor_power:", lift_bottom.getPower());
            // Turntable.update();
         telemetry.update();
-
-        Lift.update();
     }
 
 }

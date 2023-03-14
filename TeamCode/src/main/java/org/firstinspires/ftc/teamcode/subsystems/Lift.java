@@ -18,8 +18,9 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 @Config
 public class Lift
 {
-    public static final int HIGH_POSITION = 2100;
-    public static final int MEDIUM_POSITION = 1000;
+    public static final int HIGH_POSITION = 2300;
+    public static final int MEDIUM_POSITION = 1700;
+    public static final int LOW_POSITION = 960;
     public static final int INTAKE_POSITION = 0;
 
     public static final int STACK_START_POSITION = 100;
@@ -49,6 +50,7 @@ public class Lift
         lift.setRunMode(Motor.RunMode.PositionControl);
         lift.setPositionCoefficient(kP);
         lift.setTargetPosition(INTAKE_POSITION);
+        lift.resetEncoder(); // IMPORTANT
         target_position = INTAKE_POSITION;
         lift.setPositionTolerance(TOLERANCE);
     }
@@ -66,11 +68,13 @@ public class Lift
     public static int getTargetPosition() {
         return target_position;
     }
+    public static boolean atTargetPosition() {return lift.atTargetPosition();}
     public static void setTargetPosition(int set_point) {
         lift.setTargetPosition(set_point);
         target_position=set_point;
     }
-    public static void update() {
+    public static void update()
+    {
         lift.set(1);
     }
 }
