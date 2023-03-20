@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.TheBestTeleopKnownToMankind.State;
 import static org.firstinspires.ftc.teamcode.TheBestTeleopKnownToMankind.State.*;
 
 import com.outoftheboxrobotics.photoncore.PhotonCore;
